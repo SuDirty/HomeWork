@@ -33,29 +33,27 @@ class SharedMemoryAgent(BaseAgent):
                         return temp_bytes.decode()
                     break
 
-    def _init_server(self):
+    def _get_shared_memory(self):
         try:
+            self._sm_out: SharedMemory = SharedMemory(
+                name=f"psm_{self.get_address()}_out", size=1024
+            )
+            self._sm_in: SharedMemory = SharedMemory(name=f"psm_{self.get_address()}_in", size=1024)
+        except FileNotFoundError as exc:
             self._sm_out: SharedMemory = SharedMemory(
                 name=f"psm_{self.get_address()}_out", create=True, size=1024
             )
-            self._sm_out: SharedMemory = SharedMemory(
+            self._sm_in: SharedMemory = SharedMemory(
                 name=f"psm_{self.get_address()}_in", create=True, size=1024
             )
-        except Exception as exc:
-            print(exc)
+
 
     def create_server(self):
-        self._init_server()
         self._sm_out = None
         self._sm_in = None
         try:
             while True:
-                self._sm_out: SharedMemory = SharedMemory(
-                    name=f"psm_{self.get_address()}_out", size=1024
-                )
-                self._sm_in: SharedMemory = SharedMemory(
-                    name=f"psm_{self.get_address()}_in", size=1024
-                )
+                self._get_shared_memory()
                 for idx, buf_byte in enumerate(self._sm_in.buf):
                     if 0 == buf_byte:
                         temp_bytes = bytes(self._sm_in.buf[:idx])
@@ -71,7 +69,6 @@ class SharedMemoryAgent(BaseAgent):
                         break
         except Exception as exc:
             logger.error(exc)
-            print(exc)
 
     def try_connect(self, try_times: int = 10, wait_sec: int = 10):
         for i in range(try_times):
@@ -93,7 +90,6 @@ class SharedMemoryAgent(BaseAgent):
 
             except Exception as exc:
                 logger.warning(exc)
-                print(exc)
                 print(f"Waitting For Retry ({i+1})")
                 time.sleep(wait_sec)
         raise Exception("Connection Error.")
@@ -103,7 +99,6 @@ class SharedMemoryAgent(BaseAgent):
         sm_out.buf[: len(send_str)] = bytes(send_str.encode())
 
     def close(self):
-        if self._sm_out:
-            self._sm_out.unlink()
-        if self._sm_in:
-            self._sm_in.unlink()
+        self._sm_in.close()
+        self._sm_out.close()
+        pass
