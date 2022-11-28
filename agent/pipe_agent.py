@@ -35,3 +35,4 @@ class PipeAgent(BaseConnectionAgent):
 
     def get_address(self):
         return f"tmp/{self.name}"
+
