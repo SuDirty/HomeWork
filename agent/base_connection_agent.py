@@ -2,9 +2,10 @@ from abc import ABC, abstractmethod
 import logging
 from multiprocessing import Process
 from multiprocessing.connection import Listener, Connection, Client
+from threading import Thread
 import time
 
-from agent.base_agent import BaseAgent, main_process
+from agent.base_agent import BaseAgent, main_process, ServerModel
 from datetime import datetime, timedelta
 
 
@@ -29,8 +30,26 @@ def connection_process(_conn: Connection):
     return ""
 
 
+class ConnectionServer(Thread):
+    def __init__(self, server_model: ServerModel, listener, address, family):
+        super().__init__()
+        self.address = address
+        self.listener = listener
+        self.family = family
+        self.server_model = server_model
+
+    def run(self):
+        print(f"Server is running ({self.address})  ")
+        while self.server_model.status.upper() != "Q":
+            _conn = self.listener.accept()
+            cp = Process(target=connection_process, args=(_conn,))
+            cp.start()
+            cp.join()
+
+
 class BaseConnectionAgent(BaseAgent):
     def __init__(self, *args) -> None:
+        super().__init__(*args)
         self._conn: Connection = None
 
     @abstractmethod
@@ -55,12 +74,16 @@ class BaseConnectionAgent(BaseAgent):
         raise Exception("Connection Timeout.")
 
     def create_server(self):
+
         listener = Listener(address=self.get_address(), family=self.get_family())
-        while True:
-            self._conn = listener.accept()
-            p = Process(target=connection_process, args=(self._conn,))
-            p.start()
-            p.join()
+        conn_server = ConnectionServer(
+            self._server_model, listener, self.get_address(), self.get_family()
+        )
+        conn_server.daemon = True
+        conn_server.start()
+
+    def close_server(self):
+        self._server_model.status = "Q"
 
     def try_connect(self, try_times: int = 10, wait_sec: int = 10):
         for i in range(try_times):

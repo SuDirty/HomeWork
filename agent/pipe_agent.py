@@ -34,5 +34,8 @@ class PipeAgent(BaseConnectionAgent):
             return 'AF_UNIX'
 
     def get_address(self):
-        return f"tmp/{self.name}"
+        if sys.platform == 'win32':
+            return r'\\.\pipe\pipe_' + self.name
+        if sys.platform != 'win32':
+            return f"tmp/{self.name}"
 
