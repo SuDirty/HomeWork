@@ -1,5 +1,7 @@
 from abc import ABC, abstractmethod
 import logging
+import sys
+from time import sleep
 
 from services.math_service import get_mean, get_median, get_mode
 
@@ -68,3 +70,14 @@ class BaseAgent(ABC):
     @abstractmethod
     def close(self):
         pass
+
+
+    def keep_server(self):
+        keep_time = 600
+        if len(sys.argv) > 0 :
+            try:
+                keep_time = int(sys.argv[1])
+            except Exception as exc:
+                pass
+        print(f'The server will be on for {keep_time} seconds')
+        sleep(keep_time)

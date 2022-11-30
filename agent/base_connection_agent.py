@@ -12,22 +12,30 @@ from datetime import datetime, timedelta
 logger = logging.getLogger(__name__)
 
 
-def connection_process(_conn: Connection):
-    out_of_time = datetime.now() + timedelta(seconds=600)
-    try:
-        while out_of_time > datetime.now():
-            received_bytes = _conn.recv_bytes()
-            if len(received_bytes) == 0:
-                break
-            else:
-                received_str = received_bytes.decode()
-                response_str = main_process(received_str)
-                _conn.send_bytes(response_str.encode())
+class ConnectionProcess(Thread):
+    def __init__(self, conn):
+        super().__init__()
+        self._conn = conn
 
-    except Exception as exc:
-        print(exc)
+    def run(self):
+        self.connection_process()
 
-    return ""
+    def connection_process(self):
+        out_of_time = datetime.now() + timedelta(seconds=600)
+        try:
+            while out_of_time > datetime.now():
+                received_bytes = self._conn.recv_bytes()
+                if len(received_bytes) == 0:
+                    break
+                else:
+                    received_str = received_bytes.decode()
+                    response_str = main_process(received_str)
+                    self._conn.send_bytes(response_str.encode())
+
+        except Exception as exc:
+            print(exc)
+
+        return ""
 
 
 class ConnectionServer(Thread):
@@ -42,9 +50,10 @@ class ConnectionServer(Thread):
         print(f"Server is running ({self.address})  ")
         while self.server_model.status.upper() != "Q":
             _conn = self.listener.accept()
-            cp = Process(target=connection_process, args=(_conn,))
-            cp.start()
-            cp.join()
+            # connection_process(_conn)
+            connection_process = ConnectionProcess(_conn)
+            connection_process.daemon = True
+            connection_process.start()
 
 
 class BaseConnectionAgent(BaseAgent):
@@ -95,7 +104,6 @@ class BaseConnectionAgent(BaseAgent):
                     received_bytes = self._conn.recv_bytes()
                     if received_bytes:
                         logger.debug(received_bytes)
-                        print(received_bytes.decode())
                         return
 
             except Exception as exc:
