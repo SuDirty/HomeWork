@@ -28,29 +28,34 @@ print("Client 3 is ready.")
 # Wait for user input
 while True:
     input_str = input(
-        "Server is ready. You can type intergers and then click [ENTER].  Clients will show the mean, median, and mode of the input values."
+        "Server is ready.(Type 'Q' to exit.)\nYou can type intergers and then click [ENTER].  Clients will show the mean, median, and mode of the input values.\n"
     )
+
+    if input_str.upper() == "Q":
+        print('Bye~')
+        break
 
     # Verify input data
     re_compile = re.compile(r"^(\d*\s*)*$")
     match_results = re_compile.match(input_str)
     if match_results:
-        break
+        # Send to Client 1
+        response_msg = socket_agent.request_message(f"Mean:{input_str}")
+        print(response_msg)
+
+        # Send to Client 2
+        response_msg = pipe_agent.request_message(f"Median:{input_str}")
+        print(response_msg)
+
+        # Send to Client 3
+        response_msg = shared_memory_agent.request_message(f"Mode:{input_str}")
+        print(response_msg)
+        print('\n')
     else:
         print("Can only be numbers.")
 
 
-# Send to Client 1
-response_msg = socket_agent.request_message(f"Mean:{input_str}")
-print(response_msg)
 
-# Send to Client 2
-response_msg = pipe_agent.request_message(f"Median:{input_str}")
-print(response_msg)
-
-# Send to Client 3
-response_msg = shared_memory_agent.request_message(f"Mode:{input_str}")
-print(response_msg)
 
 
 socket_agent.close()

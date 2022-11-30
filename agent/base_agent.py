@@ -1,18 +1,26 @@
 from abc import ABC, abstractmethod
 import logging
+import sys
+from time import sleep
 
 from services.math_service import get_mean, get_median, get_mode
 
 logger = logging.getLogger(__name__)
 
 
-def main_process(received_str):
-    if received_str == "Handshake":
-        return "Handshake"
+class ServerModel:
+    def __init__(self):
+        self.status = ""
 
-    if ":" in received_str:
-        temp_str_list = received_str.split(":")
-        try:
+
+def main_process(received_str):
+    try:
+        if received_str == "Handshake":
+            return "Handshake"
+
+        if ":" in received_str:
+            temp_str_list = received_str.split(":")
+
             process_name = temp_str_list[0]
             process_parameter = temp_str_list[1]
             str_list = process_parameter.split(" ")
@@ -29,13 +37,15 @@ def main_process(received_str):
                 "Mode": "ModeResult:",
             }.get(process_name) + str(result)
             return response_str
-        except Exception as exc:
-            return "Error:" + str(exc).encode()
+
+    except Exception as exc:
+        return "Error:" + str(exc).encode()
+    return ""
 
 
 class BaseAgent(ABC):
     def __init__(self, *args) -> None:
-        pass
+        self._server_model = ServerModel()
 
     @abstractmethod
     def get_family(self):
@@ -60,3 +70,14 @@ class BaseAgent(ABC):
     @abstractmethod
     def close(self):
         pass
+
+
+    def keep_server(self):
+        keep_time = 600
+        if len(sys.argv) > 0 :
+            try:
+                keep_time = int(sys.argv[1])
+            except Exception as exc:
+                pass
+        print(f'The server will be on for {keep_time} seconds')
+        sleep(keep_time)
