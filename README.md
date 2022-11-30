@@ -1,3 +1,6 @@
+# Requirement
+Python 3.9 or later
+
 # How to run
 cd to homework folder  
 
